@@ -71,18 +71,19 @@
         button:hover {
             background-color: #2980b9;
         }
+
         #letterPreview {
-            width: 210mm;
-            min-height: 297mm;
-            padding: 15mm;
-            margin: 20px auto;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            box-sizing: border-box;
-            position: relative;
-            font-family: 'Noto Serif Kannada', serif;
-            font-size: 15px;
-        }
+    width: 220mm;
+    min-height: 298mm;
+    padding: 15mm;
+    margin: 20px auto;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+    position: relative;
+    font-family: 'Noto Serif Kannada', serif;
+    font-size: 15px;
+}
         .letterhead {
             position: relative;
             border-bottom: 4px double black;
@@ -221,13 +222,19 @@
                 visibility: visible;
             }
             #letterPreview {
-                position: absolute;
-                left: 0;
-                top: 0;
-                margin: 0;
-                padding: 15mm;
-                box-shadow: none;
-            }
+    width: 210mm;
+    min-height: 297mm;
+    padding: 15mm;
+    margin: 20px auto;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+    position: relative;
+    font-family: 'Noto Serif Kannada', serif;
+    font-size: 15px;
+    transform-origin: top left;
+    transform: scale(1);
+}
             .bottom-info {
                 position: fixed;
                 bottom: 15mm;
@@ -320,6 +327,7 @@
     <button onclick="generateLetter()">Generate Letter</button>
     <button onclick="editLetter()">Edit Letter</button>
     <button onclick="savePDF()">Save as PDF</button>
+    
 
     <div id="letterPreview"></div>
 
@@ -336,7 +344,7 @@
                 attachments: "Attachments:"
             },
             kn: {
-                to: "ಇವರಿಗೆ,",
+                to: "ಗೆ,",
                 sub: "ವಿಷಯ:",
                 ref: "ಉಲ್ಲೇಖ:",
                 date: "ದಿನಾಂಕ:",
@@ -475,47 +483,103 @@
         }
 
         function editLetter() {
-            const letterPreview = document.getElementById('letterPreview');
-            letterPreview.contentEditable = true;
-            letterPreview.style.border = '2px solid #3498db';
-            letterPreview.focus();
-        }
+    const letterPreview = document.getElementById('letterPreview');
+    letterPreview.contentEditable = true;
+    letterPreview.focus();
+}
 
-        function savePDF() {
-            const letterPreview = document.getElementById('letterPreview');
-            const originalStyle = letterPreview.style.cssText;
+function savePDF() {
+    const letterPreview = document.getElementById('letterPreview');
+    
+    html2canvas(letterPreview, {
+        scale: 6,
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: 'white',
+        width: 800,  // A4 width at 96 DPI
+        height: 1125, // A4 height at 96 DPI
+        imageTimeout: 0
+    }).then(canvas => {
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4',
+            compress: true
+        });
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+        pdf.save('letter.pdf');
+    }).catch(error => {
+        console.error('Error:', error);
+        alert('Error generating PDF. Please try again.');
+    });
+}
+function printPDF() {
+    const letterPreview = document.getElementById('letterPreview');
+    
+    html2canvas(letterPreview, {
+        scale: 6,
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: 'white',
+        width: 800,
+        height: 1230,
+        imageTimeout: 0
+    }).then(canvas => {
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4',
+            compress: true
+        });
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+        
+        // Open PDF in new window and trigger print
+        pdf.output('dataurlnewwindow');
+    }).catch(error => {
+        console.error('Error:', error);
+        alert('Error printing PDF. Please try again.');
+    });
+}
 
-            letterPreview.style.margin = '0';
-            letterPreview.style.padding = '15mm';
-            letterPreview.style.backgroundColor = 'white';
-            letterPreview.style.position = 'relative';
-            letterPreview.style.minHeight = '297mm';
+function exportToWord() {
+    const letterPreview = document.getElementById('letterPreview');
+    const letterContent = letterPreview.innerHTML;
+    const hasLetterhead = document.getElementById('letterheadOption').value === 'withLetterhead';
 
-            html2canvas(letterPreview, {
-                scale: 2,
-                logging: false,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: 'white',
-                height: letterPreview.scrollHeight,
-                windowHeight: letterPreview.scrollHeight
-            }).then(canvas => {
-                letterPreview.style.cssText = originalStyle;
-                
-                const imgData = canvas.toDataURL('image/jpeg', 1.0);
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = pdf.internal.pageSize.getHeight();
+    const blob = new Blob([`
+        <html>
+            <head>
+                <meta charset='utf-8'>
+                <style>
+                    body { 
+                        font-family: 'Noto Serif Kannada', serif;
+                        padding: ${hasLetterhead ? '0' : '35mm'} 15mm 15mm 15mm;
+                    }
+                    .letterhead { display: none; }
+                </style>
+            </head>
+            <body>
+                ${letterContent}
+            </body>
+        </html>
+    `], { type: 'application/msword' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'letter_content.doc';
+    link.click();
+    URL.revokeObjectURL(link.href);
 
-                pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-                pdf.save('letter.pdf');
-            }).catch(error => {
-                console.error('Error:', error);
-                alert('Error generating PDF. Please try again.');
-                letterPreview.style.cssText = originalStyle;
-            });
-        }
+    alert('Please copy this content into your "SMP Letter Head.doc" template');
+}
 
         updateLabels();
     </script>
